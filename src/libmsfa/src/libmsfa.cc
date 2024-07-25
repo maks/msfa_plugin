@@ -37,7 +37,7 @@ double sample_rate = 44100.0;
 
 RingBuffer *ring_buffer;
 SynthUnit *synth_unit;
-ma_device device;
+ma_device *device;
 
 void data_callback(ma_device *pDevice, void *pOutput, const void *pInput, ma_uint32 frameCount) {
   // Use MSFA frames
@@ -55,22 +55,24 @@ msfa_result initEngine() {
   ring_buffer = new RingBuffer();
   synth_unit = new SynthUnit(ring_buffer);
 
+  if (device == nullptr) {
+    device = (ma_device *)malloc(sizeof(ma_device));
+    deviceConfig = ma_device_config_init(ma_device_type_playback);
+    deviceConfig.playback.format = ma_format_s16;
+    deviceConfig.playback.channels = 1;
+    deviceConfig.sampleRate = ma_standard_sample_rate_44100;
+    deviceConfig.dataCallback = data_callback;
 
-  deviceConfig = ma_device_config_init(ma_device_type_playback);
-  deviceConfig.playback.format = ma_format_s16;
-  deviceConfig.playback.channels = 1;
-  deviceConfig.sampleRate = ma_standard_sample_rate_44100;
-  deviceConfig.dataCallback = data_callback;
+    if (ma_device_init(NULL, &deviceConfig, device) != MA_SUCCESS) {
+      // printf("Failed to open playback device.\n");
+      return MSFA_AUDIO_OPEN_FAILED;
+    }
 
-  if (ma_device_init(NULL, &deviceConfig, &device) != MA_SUCCESS) {
-    //printf("Failed to open playback device.\n");
-    return MSFA_AUDIO_OPEN_FAILED;
-  }
-
-  if (ma_device_start(&device) != MA_SUCCESS) {
-    //printf("Failed to start playback device.\n");
-    ma_device_uninit(&device);
-    return MSFA_AUDIO_START_FAILED;
+    if (ma_device_start(device) != MA_SUCCESS) {
+      // printf("Failed to start playback device.\n");
+      ma_device_uninit(device);
+      return MSFA_AUDIO_START_FAILED;
+    }
   }
   return MSFA_SUCCESS;
 }
@@ -80,5 +82,6 @@ void sendMidi(const uint8_t *bytes, int size) {
 }
 
 void shutdownEngine() {
-  ma_device_uninit(&device);
+  ma_device_uninit(device);
+  free(device);
 }
