@@ -35,7 +35,7 @@ char epiano[] = {
 };
 
 // read a syx patch bank file from filename path and load it into the synth engine
-int load(const char *filename) {
+int load(const char *filename, uint8_t channel) {
   uint8_t syx_data[4104];
   std::ifstream fp_in;
   fp_in.open(filename, std::ifstream::in);
@@ -48,7 +48,7 @@ int load(const char *filename) {
     std::cerr << "error reading file" << std::endl;
     return 1;
   }
-  sendMidi(syx_data, 4104);
+  sendMidiToChannel(channel, syx_data, 4104);
   return 0;
 }
 
@@ -60,18 +60,49 @@ int main(int argc, char **argv)
     printf("Failed to initialise MSFA engine\n");
     return 1;
   }
- 
+
+  // create 2nd synth engine on channel 1
+  createSynth();
+
   const char *fn = "../data/rom1a.syx";
-  load(fn);
+
+  // load into both synth engines
+  load(fn, 0);
+  load(fn, 1);
+
+  printf("loaded rom1a.syx\n");
 
   uint8_t midiNoteNumber = 0x4c;
   uint8_t midiNoteDown[] = {0x90, midiNoteNumber, 0x57};
   uint8_t midiNoteUp[] = {0x90, midiNoteNumber, 0x00};
-  
+
+  // change instrument patch on synth 0
+  uint8_t midiProgramChange[] = {0xC0, 0x15};
+  sendMidi(midiProgramChange, 2);
+
   sleep(1);
   sendMidi(midiNoteDown, 3);
   sleep(3);
- 
+
+  sendMidi(midiNoteUp, 3);
+
+  sleep(1);
+
+  // now on synth 1
+  midiProgramChange[0] = 0xC1;
+  midiProgramChange[1] = 0x04;
+  sendMidi(midiProgramChange, 2);
+
+  midiNoteDown[0] = 0x91;
+  midiNoteDown[1] = midiNoteNumber + 8;
+
+  midiNoteUp[0] = 0x91;
+  midiNoteUp[1] = midiNoteNumber + 8;
+
+  sleep(1);
+  sendMidi(midiNoteDown, 3);
+  sleep(3);
+
   sendMidi(midiNoteUp, 3);
 
   printf("Press Enter to quit...");

@@ -40,12 +40,25 @@ class MSFAPlugin implements Finalizable {
     return completer.future;
   }
 
+  void createSynth() {
+    _bindings.createSynth();
+  }
+
   void sendMidi(List<int> list) {
     Pointer<Uint8> buf = ffi.malloc.allocate(list.length);
     for (int i = 0; i < list.length; i++) {
       buf[i] = list[i];
     }
     _bindings.sendMidi(buf, list.length);
+    ffi.malloc.free(buf);
+  }
+
+  void sendMidiToChannel(int channel, List<int> list) {
+    Pointer<Uint8> buf = ffi.malloc.allocate(list.length);
+    for (int i = 0; i < list.length; i++) {
+      buf[i] = list[i];
+    }
+    _bindings.sendMidiToChannel(channel, buf, list.length);
     ffi.malloc.free(buf);
   }
 

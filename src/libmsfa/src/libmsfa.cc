@@ -33,15 +33,29 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "../include/miniaudio.h"
 
+#define MAX_ENGINES 16
+
 double sample_rate = 44100.0;
 
-RingBuffer *ring_buffer;
-SynthUnit *synth_unit;
+RingBuffer *ring_buffer[MAX_ENGINES];
+SynthUnit *synth_unit[MAX_ENGINES];
+u_short engine_id_count = 0;
+
 ma_device *device;
 
 void data_callback(ma_device *pDevice, void *pOutput, const void *pInput, ma_uint32 frameCount) {
   // Use MSFA frames
-  synth_unit->GetSamples(frameCount, (int16_t *)pOutput);
+  // iterate through all channels and get samples and mix them together
+  int16_t *buffer = (int16_t *)malloc(frameCount * sizeof(int16_t));
+  for (int channel = 0; channel < engine_id_count; channel++) {
+    synth_unit[channel]->GetSamples(frameCount, buffer);
+
+    /* Mix the frames together. */
+    for (int iSample = 0; iSample < frameCount; iSample++) {
+      ((int16_t *)pOutput)[iSample] += buffer[iSample];
+    }
+  }
+  free(buffer);
 
   (void)pInput;
 }
@@ -51,9 +65,7 @@ msfa_result initEngine() {
   ma_device_config deviceConfig;
 
   // Init MSFA engine
-  SynthUnit::Init(sample_rate);
-  ring_buffer = new RingBuffer();
-  synth_unit = new SynthUnit(ring_buffer);
+  createSynth();
 
   if (device == nullptr) {
     device = (ma_device *)malloc(sizeof(ma_device));
@@ -77,8 +89,52 @@ msfa_result initEngine() {
   return MSFA_SUCCESS;
 }
 
+void createSynth() {
+  SynthUnit::Init(sample_rate);
+  auto rb = ring_buffer[engine_id_count] = new RingBuffer();
+  synth_unit[engine_id_count] = new SynthUnit(rb);
+  printf("MSFA synth engine %d initialized\n", engine_id_count);
+  engine_id_count++;
+}
+
 void sendMidi(const uint8_t *bytes, int size) {
-  ring_buffer->Write(bytes, size);
+  short channel = 0;
+  uint8_t midiCommand = bytes[0] & 0xF0; // mask off all but top 4 bits
+  if (midiCommand >= 0x80 && midiCommand <= 0xE0) {
+    // it's a voice message
+    // find the channel by masking off all but the low 4 bits
+    uint8_t midiChannel = bytes[0] & 0x0F;
+    channel = midiChannel;
+  }
+
+  if (channel < engine_id_count) {
+    printf("[%d] send to channel: %X,%X\n", channel, bytes[0], bytes[1]);
+    ring_buffer[channel]->Write(bytes, size);
+  } else {
+    printf("Channel %d not found\n", channel);
+  }
+}
+
+void sendMidiToChannel(uint8_t channel, const uint8_t *bytes, int size) {
+  if (channel < engine_id_count) {
+    printf("[%d] send to channel: %X,%X\n", channel, bytes[0], bytes[1]);
+    ring_buffer[channel]->Write(bytes, size);
+  } else {
+    printf("Channel %d not found\n", channel);
+  }
+}
+
+uint8_t parseChannelFromMessage(const uint8_t midiStatus) {
+  uint8_t midiCommand = midiStatus & 0xF0; // mask off all but top 4 bits
+
+  if (midiCommand >= 0x80 && midiCommand <= 0xE0) {
+    // it's a voice message
+    // find the channel by masking off all but the low 4 bits
+    uint8_t midiChannel = midiStatus & 0x0F;
+    return midiChannel;
+  } else {
+    return 0;
+  }
 }
 
 void shutdownEngine() {

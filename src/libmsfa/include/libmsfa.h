@@ -15,7 +15,9 @@ typedef enum
 extern "C" {
 #endif
     msfa_result initEngine();
+    void createSynth();
     void sendMidi(const uint8_t *bytes, int size);
+    void sendMidiToChannel(uint8_t channel, const uint8_t *bytes, int size);
     void shutdownEngine();
 #ifdef __cplusplus    
 }

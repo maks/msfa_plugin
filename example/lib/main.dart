@@ -37,17 +37,17 @@ class MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-  void sendNoteOn(int noteNumber, int velocity) {
-    print("send note on: $noteNumber");
+  void sendNoteOn(int channel, int noteNumber, int velocity) {
+    print("[$channel] send note on: $noteNumber");
     // Midi messages: [Status, NoteNumber, Velocity]
     // where status is 0x90-0x9F and the low nibble is the channel number 0-15
     // ref: http://midi.teragonaudio.com/tech/midispec/noteon.htm
-    plugin.sendMidi([0x90, noteNumber, velocity]);
+    plugin.sendMidi([0x90 + channel, noteNumber, velocity]);
   }
 
-  void sendNoteOff(int noteNumber) {
-    print("send note off: $noteNumber");
-    plugin.sendMidi([0x80, noteNumber, 0x00]);
+  void sendNoteOff(int channel, int noteNumber) {
+    print("[$channel] send note off: $noteNumber");
+    plugin.sendMidi([0x80 + channel, noteNumber, 0x00]);
   }
 
   @override
@@ -88,10 +88,10 @@ class MyAppState extends State<MyApp> {
                   child: VirtualPiano(
                     noteRange: const RangeValues(52, 71),
                     onNotePressed: (note, pos) {
-                      sendNoteOn(note, 0x57);
+                      sendNoteOn(0, note, 0x57);
                     },
                     onNoteReleased: (note) {
-                      sendNoteOff(note);
+                      sendNoteOff(0, note);
                     },
                   ),
                 ),

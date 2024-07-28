@@ -34,6 +34,14 @@ class MsfaPluginBindings {
       _lookup<ffi.NativeFunction<ffi.Int32 Function()>>('initEngine');
   late final _initEngine = _initEnginePtr.asFunction<int Function()>();
 
+  void createSynth() {
+    return _createSynth();
+  }
+
+  late final _createSynthPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function()>>('createSynth');
+  late final _createSynth = _createSynthPtr.asFunction<void Function()>();
+
   void sendMidi(
     ffi.Pointer<ffi.Uint8> bytes,
     int size,
@@ -49,6 +57,25 @@ class MsfaPluginBindings {
           ffi.Void Function(ffi.Pointer<ffi.Uint8>, ffi.Int)>>('sendMidi');
   late final _sendMidi =
       _sendMidiPtr.asFunction<void Function(ffi.Pointer<ffi.Uint8>, int)>();
+
+  void sendMidiToChannel(
+    int channel,
+    ffi.Pointer<ffi.Uint8> bytes,
+    int size,
+  ) {
+    return _sendMidiToChannel(
+      channel,
+      bytes,
+      size,
+    );
+  }
+
+  late final _sendMidiToChannelPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Uint8, ffi.Pointer<ffi.Uint8>,
+              ffi.Int)>>('sendMidiToChannel');
+  late final _sendMidiToChannel = _sendMidiToChannelPtr
+      .asFunction<void Function(int, ffi.Pointer<ffi.Uint8>, int)>();
 
   void shutdownEngine() {
     return _shutdownEngine();
