@@ -1,3 +1,7 @@
+## 1.0.1
+
+* Updated Android version and example
+
 ## 1.0.0
 * add support multitimbral support, upto 16 timbres, 1 per midi channel
 
