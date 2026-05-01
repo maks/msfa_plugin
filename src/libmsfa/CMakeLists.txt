@@ -38,6 +38,10 @@ add_library(
     src/synth_unit.cc   
 )
 
+set_target_properties(msfa PROPERTIES
+    LINK_FLAGS "-Wl,-z,max-page-size=16384"
+)
+
 add_library(
     # only used by the test runner executable
     testhelper
