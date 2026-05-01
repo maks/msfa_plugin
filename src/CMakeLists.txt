@@ -30,6 +30,7 @@ add_library(msfa_plugin SHARED
 set_target_properties(msfa_plugin PROPERTIES
   PUBLIC_HEADER msfa_plugin.h
   OUTPUT_NAME "msfa_plugin"
+  LINK_FLAGS "-Wl,-z,max-page-size=16384"
 )
 
 target_compile_options(msfa_plugin PRIVATE -Wno-c++11-narrowing)
